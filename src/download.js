@@ -16,8 +16,11 @@ module.exports = (torrent, path) => {
 };
 
 function download(peer, torrent, pieces, file) {
+  console.log('download from peer', peer)
   const socket = new net.Socket();
-  socket.on('error', console.log);
+  socket.on('error', (e) => {
+    console.log(e.message)
+  });
   socket.connect(peer.port, peer.ip, () => {
     socket.write(message.buildHandshake(torrent));
   });
@@ -44,9 +47,12 @@ function onWholeMsg(socket, callback) {
 
 function msgHandler(msg, socket, pieces, queue, torrent, file) {
   if (isHandshake(msg)) {
+    console.log('msgHandler handshake')
     socket.write(message.buildInterested());
   } else {
     const m = message.parse(msg);
+    console.log('msgHandler else', m.id)
+    console.log('queue.length', queue.length())
 
     if (m.id === 0) chokeHandler(socket);
     if (m.id === 1) unchokeHandler(socket, pieces, queue);
@@ -107,7 +113,7 @@ function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
 
 function requestPiece(socket, pieces, queue) {
   if (queue.choked) return null;
-
+  
   while (queue.length()) {
     const pieceBlock = queue.deque();
     if (pieces.needed(pieceBlock)) {
